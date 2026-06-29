@@ -9,21 +9,32 @@ public class GameManager : MonoBehaviour
     BarController bar;
     Collider2D barCollider;
 
+    const float worldMinY = -6f;
+    const float worldMaxY = 52f;
+
     void Start()
     {
         Camera cam = Camera.main;
         cam.backgroundColor = new Color(0.08f, 0.08f, 0.15f);
 
-        float hw = cam.orthographicSize * cam.aspect; // half width
-        float hh = cam.orthographicSize;              // half height
+        float hw = cam.orthographicSize * cam.aspect;
+        float hh = cam.orthographicSize;
 
         bar = CreateBar(hw, -hh + 0.5f);
         barCollider = bar.GetComponent<Collider2D>();
 
-        CreateBall(bar.GetCenterY());
-        CreateGoal(hw, hh);
-        CreateObstacles(hw, hh);
-        CreateWalls(hw, hh);
+        var ball = CreateBall(bar.GetCenterY());
+        CreateGoal(hw, worldMaxY - 1f);
+        CreateObstacles(hw);
+        CreateWalls(hw);
+        SetupCamera(cam, ball);
+    }
+
+    void SetupCamera(Camera cam, GameObject ball)
+    {
+        var ctrl = cam.gameObject.AddComponent<CameraController>();
+        ctrl.ball = ball.transform;
+        ctrl.Initialize(worldMinY, worldMaxY);
     }
 
     // ---- factory methods ----
@@ -42,7 +53,7 @@ public class GameManager : MonoBehaviour
         return ctrl;
     }
 
-    void CreateBall(float barCenterY)
+    GameObject CreateBall(float barCenterY)
     {
         const float barHalfH = 0.18f / 2f;   // バー厚みの半分
         const float ballRadius = 0.35f / 2f;  // ボール半径 (scale * collider default radius 0.5)
@@ -71,12 +82,14 @@ public class GameManager : MonoBehaviour
 
         var bc = go.AddComponent<BallController>();
         bc.gameManager = this;
+
+        return go;
     }
 
-    void CreateGoal(float hw, float hh)
+    void CreateGoal(float hw, float goalY)
     {
         var go = new GameObject("Goal");
-        go.transform.position = new Vector2(0f, hh - 0.35f);
+        go.transform.position = new Vector2(0f, goalY);
         go.transform.localScale = new Vector3(hw * 2f, 0.5f, 1f);
 
         var sr = go.AddComponent<SpriteRenderer>();
@@ -94,21 +107,33 @@ public class GameManager : MonoBehaviour
     // Obstacle rows: each entry is (centerY, gapCenterX, gapHalfWidth)
     static readonly (float y, float gx, float ghw)[] ObstacleData =
     {
-        (-2.0f,  -2.5f, 1.1f),
-        ( 0.0f,   2.5f, 1.1f),
-        ( 2.0f,   0.0f, 1.1f),
+        (-2f,  -2.5f, 1.1f),
+        ( 1f,   2.5f, 1.1f),
+        ( 4f,   0.0f, 1.1f),
+        ( 7f,  -2.5f, 1.0f),
+        (10f,   2.5f, 1.0f),
+        (13f,   0.0f, 1.0f),
+        (16f,  -2.5f, 1.0f),
+        (19f,   2.5f, 0.95f),
+        (22f,   0.0f, 0.95f),
+        (25f,  -2.5f, 0.95f),
+        (28f,   2.5f, 0.9f),
+        (31f,   0.0f, 0.9f),
+        (34f,  -2.5f, 0.9f),
+        (37f,   2.5f, 0.9f),
+        (40f,   0.0f, 0.85f),
+        (43f,  -2.5f, 0.85f),
+        (46f,   2.5f, 0.85f),
     };
 
-    void CreateObstacles(float hw, float hh)
+    void CreateObstacles(float hw)
     {
         foreach (var (oy, gx, ghw) in ObstacleData)
         {
             float thickness = 0.28f;
-            // left piece
-            float leftWidth = (hw + gx - ghw);
+            float leftWidth = hw + gx - ghw;
             if (leftWidth > 0.1f)
                 SpawnObstaclePiece(-(hw - leftWidth * 0.5f), oy, leftWidth, thickness);
-            // right piece
             float rightStart = gx + ghw;
             float rightWidth = hw - rightStart;
             if (rightWidth > 0.1f)
@@ -132,10 +157,12 @@ public class GameManager : MonoBehaviour
         Physics2D.IgnoreCollision(barCollider, col);
     }
 
-    void CreateWalls(float hw, float hh)
+    void CreateWalls(float hw)
     {
-        SpawnWall(-hw - 0.5f, 0f, 1f, hh * 2f);
-        SpawnWall( hw + 0.5f, 0f, 1f, hh * 2f);
+        float wallHeight = worldMaxY - worldMinY;
+        float wallCenterY = (worldMaxY + worldMinY) * 0.5f;
+        SpawnWall(-hw - 0.5f, wallCenterY, 1f, wallHeight);
+        SpawnWall( hw + 0.5f, wallCenterY, 1f, wallHeight);
     }
 
     void SpawnWall(float x, float y, float w, float h)

@@ -4,14 +4,13 @@ using UnityEngine;
 public class BarController : MonoBehaviour
 {
     public float moveSpeed = 4f;
-    public float minY = -4.5f;
-    public float maxY = 4f;
 
     [HideInInspector] public float leftY;
     [HideInInspector] public float rightY;
     [HideInInspector] public float barHalfWidth;
 
     private Rigidbody2D rb;
+    private Camera cam;
 
     void Awake()
     {
@@ -19,6 +18,7 @@ public class BarController : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+        cam = Camera.main;
     }
 
     public void Initialize(float halfWidth, float startY)
@@ -41,8 +41,13 @@ public class BarController : MonoBehaviour
         if (Input.GetKey(KeyCode.UpArrow)) rightY += moveSpeed * dt;
         if (Input.GetKey(KeyCode.DownArrow)) rightY -= moveSpeed * dt;
 
-        leftY = Mathf.Clamp(leftY, minY, maxY);
-        rightY = Mathf.Clamp(rightY, minY, maxY);
+        float camCenterY = cam.transform.position.y;
+        float camHH = cam.orthographicSize;
+        float dynMinY = camCenterY - camHH + 0.3f;
+        float dynMaxY = camCenterY + camHH - 0.3f;
+
+        leftY = Mathf.Clamp(leftY, dynMinY, dynMaxY);
+        rightY = Mathf.Clamp(rightY, dynMinY, dynMaxY);
 
         Apply();
     }
