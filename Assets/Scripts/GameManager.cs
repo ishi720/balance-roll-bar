@@ -5,6 +5,7 @@ public class GameManager : MonoBehaviour
 {
     bool gameOver;
     bool gameWon;
+    bool timeUp;
 
     BarController bar;
     Collider2D barCollider;
@@ -12,8 +13,13 @@ public class GameManager : MonoBehaviour
     const float worldMinY = -6f;
     const float worldMaxY = 52f;
 
+    const float timeLimit = 180f; // 3分
+    float timeRemaining;
+
     void Start()
     {
+        timeRemaining = timeLimit;
+
         Camera cam = Camera.main;
         cam.backgroundColor = new Color(0.08f, 0.08f, 0.15f);
 
@@ -28,6 +34,19 @@ public class GameManager : MonoBehaviour
         CreateObstacles(hw);
         CreateWalls(hw);
         SetupCamera(cam, ball);
+    }
+
+    void Update()
+    {
+        if (gameOver || gameWon) return;
+
+        timeRemaining -= Time.deltaTime;
+        if (timeRemaining <= 0f)
+        {
+            timeRemaining = 0f;
+            timeUp = true;
+            gameOver = true;
+        }
     }
 
     void SetupCamera(Camera cam, GameObject ball)
@@ -225,15 +244,23 @@ public class GameManager : MonoBehaviour
         GUI.Label(new Rect(10, 10, 320, 80),
             "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って上のゴールへ！", info);
 
+        var timerStyle = new GUIStyle(GUI.skin.label) { fontSize = 28, alignment = TextAnchor.UpperRight };
+        timerStyle.normal.textColor = timeRemaining <= 30f ? Color.red : Color.white;
+        int minutes = Mathf.FloorToInt(timeRemaining / 60f);
+        int seconds = Mathf.FloorToInt(timeRemaining % 60f);
+        GUI.Label(new Rect(Screen.width - 160 - 10, 10, 160, 40),
+            string.Format("{0:00}:{1:00}", minutes, seconds), timerStyle);
+
         if (!gameWon && !gameOver) return;
 
         var big = new GUIStyle(GUI.skin.label) { fontSize = 48, alignment = TextAnchor.MiddleCenter };
         big.normal.textColor = gameWon ? Color.yellow : Color.red;
 
+        string message = gameWon ? "クリア！" : (timeUp ? "タイムアップ" : "ゲームオーバー");
+
         float cx = Screen.width * 0.5f;
         float cy = Screen.height * 0.5f;
-        GUI.Label(new Rect(0, cy - 60, Screen.width, 80),
-            gameWon ? "クリア！" : "ゲームオーバー", big);
+        GUI.Label(new Rect(0, cy - 60, Screen.width, 80), message, big);
 
         if (GUI.Button(new Rect(cx - 70, cy + 40, 140, 40), "もう一度"))
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
