@@ -32,6 +32,7 @@ public class GameManager : MonoBehaviour
         var ball = CreateBall(bar.GetCenterY());
         CreateGoal(hw, worldMaxY - 1f);
         CreateObstacles(hw);
+        CreateEnemies();
         CreateWalls(hw);
         SetupCamera(cam, ball);
     }
@@ -176,6 +177,40 @@ public class GameManager : MonoBehaviour
         Physics2D.IgnoreCollision(barCollider, col);
     }
 
+    // Circle enemy spawns: each entry is (originX, originY, radius, angularSpeed deg/sec)
+    static readonly (float ox, float oy, float radius, float angSpeed)[] EnemyData =
+    {
+        (-2.5f,  6f, 1.0f,  80f),
+        ( 2.5f, 15f, 1.2f, -60f),
+        ( 0.0f, 24f, 1.4f,  70f),
+        (-2.5f, 33f, 1.2f, -90f),
+        ( 2.5f, 42f, 1.0f, 100f),
+    };
+
+    void CreateEnemies()
+    {
+        foreach (var (ox, oy, radius, angSpeed) in EnemyData)
+            SpawnCircleEnemy(new Vector2(ox, oy), radius, angSpeed);
+    }
+
+    void SpawnCircleEnemy(Vector2 origin, float radius, float angularSpeed)
+    {
+        var go = new GameObject("Enemy");
+        go.transform.localScale = Vector3.one * 0.6f;
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = CircleSprite();
+        sr.color = new Color(0.75f, 0.1f, 0.9f);
+        sr.sortingOrder = 3;
+
+        var col = go.AddComponent<CircleCollider2D>();
+        col.isTrigger = true;
+
+        var enemy = go.AddComponent<EnemyController>();
+        enemy.gameManager = this;
+        enemy.Initialize(origin, new CircleMovement(radius, angularSpeed));
+    }
+
     void CreateWalls(float hw)
     {
         float wallHeight = worldMaxY - worldMinY;
@@ -234,6 +269,12 @@ public class GameManager : MonoBehaviour
     {
         if (gameOver || gameWon) return;
         gameWon = true;
+    }
+
+    public void OnEnemyHit()
+    {
+        if (gameOver || gameWon) return;
+        gameOver = true;
     }
 
     // ---- UI ----
