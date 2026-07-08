@@ -16,9 +16,15 @@ public class GameManager : MonoBehaviour
     const float timeLimit = 180f; // 3分
     float timeRemaining;
 
+    const int maxLife = 3;
+    const float invincibleDuration = 1.5f; // 被弾後の無敵時間
+    int life;
+    float invincibleTimer;
+
     void Start()
     {
         timeRemaining = timeLimit;
+        life = maxLife;
 
         Camera cam = Camera.main;
         cam.backgroundColor = new Color(0.08f, 0.08f, 0.15f);
@@ -39,6 +45,9 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (invincibleTimer > 0f)
+            invincibleTimer -= Time.deltaTime;
+
         if (gameOver || gameWon) return;
 
         timeRemaining -= Time.deltaTime;
@@ -287,7 +296,12 @@ public class GameManager : MonoBehaviour
     public void OnEnemyHit()
     {
         if (gameOver || gameWon) return;
-        gameOver = true;
+        if (invincibleTimer > 0f) return;
+
+        life--;
+        invincibleTimer = invincibleDuration;
+        if (life <= 0)
+            gameOver = true;
     }
 
     // ---- UI ----
@@ -297,6 +311,9 @@ public class GameManager : MonoBehaviour
         var info = new GUIStyle(GUI.skin.label) { fontSize = 16 };
         GUI.Label(new Rect(10, 10, 320, 80),
             "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って上のゴールへ！", info);
+
+        var lifeStyle = new GUIStyle(GUI.skin.label) { fontSize = 20 };
+        GUI.Label(new Rect(10, 90, 200, 30), "ライフ: " + new string('♥', Mathf.Max(life, 0)), lifeStyle);
 
         var timerStyle = new GUIStyle(GUI.skin.label) { fontSize = 28, alignment = TextAnchor.UpperRight };
         timerStyle.normal.textColor = timeRemaining <= 30f ? Color.red : Color.white;
