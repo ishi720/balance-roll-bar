@@ -1,6 +1,10 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// ゲーム全体の管理者。ステージ上のオブジェクトをすべてコードから生成し、
+/// ライフ・タイマー・勝敗判定・UI表示を担う。
+/// </summary>
 public class GameManager : MonoBehaviour
 {
     bool gameOver;
@@ -21,6 +25,7 @@ public class GameManager : MonoBehaviour
     int life;
     float invincibleTimer;
 
+    /// <summary>ライフ・タイマーを初期化し、バー・ボール・ゴール・障害物・敵・壁・カメラを生成する。</summary>
     void Start()
     {
         timeRemaining = timeLimit;
@@ -43,6 +48,7 @@ public class GameManager : MonoBehaviour
         SetupCamera(cam, ball);
     }
 
+    /// <summary>無敵時間を減少させ、残り時間を減らして時間切れならゲームオーバーにする。</summary>
     void Update()
     {
         if (invincibleTimer > 0f)
@@ -59,6 +65,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>メインカメラにCameraControllerを追加し、追従対象とスクロール範囲を設定する。</summary>
     void SetupCamera(Camera cam, GameObject ball)
     {
         var ctrl = cam.gameObject.AddComponent<CameraController>();
@@ -68,6 +75,7 @@ public class GameManager : MonoBehaviour
 
     // ---- factory methods ----
 
+    /// <summary>バーを生成し、幅と初期位置を設定する。</summary>
     BarController CreateBar(float hw, float startY)
     {
         var go = new GameObject("Bar");
@@ -82,6 +90,7 @@ public class GameManager : MonoBehaviour
         return ctrl;
     }
 
+    /// <summary>ボールを生成し、バーの中心の少し上に配置する。</summary>
     GameObject CreateBall(float barCenterY)
     {
         const float barHalfH = 0.18f / 2f;   // バー厚みの半分
@@ -115,6 +124,7 @@ public class GameManager : MonoBehaviour
         return go;
     }
 
+    /// <summary>ゴールゾーンを生成する。</summary>
     void CreateGoal(float hw, float goalY)
     {
         var go = new GameObject("Goal");
@@ -155,6 +165,7 @@ public class GameManager : MonoBehaviour
         (46f,   2.5f, 0.85f),
     };
 
+    /// <summary>ObstacleDataの各行について、隙間を空けた左右の障害物を生成する。</summary>
     void CreateObstacles(float hw)
     {
         foreach (var (oy, gx, ghw) in ObstacleData)
@@ -170,6 +181,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>障害物1個(左右どちらか片方)を生成し、バーとの衝突を無視させる。</summary>
     void SpawnObstaclePiece(float cx, float cy, float w, float h)
     {
         var go = new GameObject("Obstacle");
@@ -206,6 +218,7 @@ public class GameManager : MonoBehaviour
         (-1.0f, 45f, 1.5f, 2.0f),
     };
 
+    /// <summary>CircleEnemyData・HorizontalEnemyDataに従って全ての敵を生成する。</summary>
     void CreateEnemies()
     {
         foreach (var (ox, oy, radius, angSpeed) in CircleEnemyData)
@@ -215,6 +228,7 @@ public class GameManager : MonoBehaviour
             SpawnEnemy(new Vector2(ox, oy), new HorizontalPingPongMovement(amplitude, speed));
     }
 
+    /// <summary>敵1体を生成し、指定の移動パターンを適用する。</summary>
     void SpawnEnemy(Vector2 origin, IEnemyMovement movement)
     {
         var go = new GameObject("Enemy");
@@ -232,6 +246,7 @@ public class GameManager : MonoBehaviour
         enemy.Initialize(origin, movement);
     }
 
+    /// <summary>左右の壁を生成する。</summary>
     void CreateWalls(float hw)
     {
         float wallHeight = worldMaxY - worldMinY;
@@ -240,6 +255,7 @@ public class GameManager : MonoBehaviour
         SpawnWall( hw + 0.5f, wallCenterY, 1f, wallHeight);
     }
 
+    /// <summary>壁1枚を生成する。</summary>
     void SpawnWall(float x, float y, float w, float h)
     {
         var go = new GameObject("Wall");
@@ -256,6 +272,7 @@ public class GameManager : MonoBehaviour
 
     // ---- sprite helpers ----
 
+    /// <summary>1x1の単色スプライトを生成する。</summary>
     static Sprite SquareSprite()
     {
         var tex = new Texture2D(1, 1);
@@ -264,6 +281,7 @@ public class GameManager : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
     }
 
+    /// <summary>塗りつぶし円形のスプライトを生成する。</summary>
     static Sprite CircleSprite()
     {
         const int S = 64;
@@ -280,18 +298,24 @@ public class GameManager : MonoBehaviour
 
     // ---- game events ----
 
+    /// <summary>ボールが画面外に落ちた際に呼ばれ、ゲームオーバーにする。</summary>
     public void OnBallFell()
     {
         if (gameOver || gameWon) return;
         gameOver = true;
     }
 
+    /// <summary>ボールがゴールに到達した際に呼ばれ、ゲームクリアにする。</summary>
     public void OnBallReachedGoal()
     {
         if (gameOver || gameWon) return;
         gameWon = true;
     }
 
+    /// <summary>
+    /// ボールが敵に接触した際に呼ばれる。無敵時間中は無視し、そうでなければライフを1減らして
+    /// 無敵時間を開始する。ライフが尽きるとゲームオーバーにする。
+    /// </summary>
     public void OnEnemyHit()
     {
         if (gameOver || gameWon) return;
@@ -305,6 +329,7 @@ public class GameManager : MonoBehaviour
 
     // ---- UI ----
 
+    /// <summary>操作説明・ライフ・タイマー・勝敗メッセージをIMGUIで描画する。</summary>
     void OnGUI()
     {
         var info = new GUIStyle(GUI.skin.label) { fontSize = 16 };

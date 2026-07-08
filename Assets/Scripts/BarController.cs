@@ -1,12 +1,19 @@
 using UnityEngine;
 
+/// <summary>
+/// バーの左右の高さをキー入力で独立して操作し、傾きと衝突ブロック判定を行う。
+/// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
 public class BarController : MonoBehaviour
 {
+    /// <summary>バー端の上下移動速度。</summary>
     public float moveSpeed = 4f;
 
+    /// <summary>バー左端のY座標。</summary>
     [HideInInspector] public float leftY;
+    /// <summary>バー右端のY座標。</summary>
     [HideInInspector] public float rightY;
+    /// <summary>バーの半分の長さ。</summary>
     [HideInInspector] public float barHalfWidth;
 
     private Rigidbody2D rb;
@@ -16,6 +23,7 @@ public class BarController : MonoBehaviour
 
     private static readonly RaycastHit2D[] _castBuffer = new RaycastHit2D[8];
 
+    /// <summary>Rigidbody2DをKinematicに設定し、連続衝突検出と補間を有効にする。</summary>
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -25,6 +33,7 @@ public class BarController : MonoBehaviour
         cam = Camera.main;
     }
 
+    /// <summary>Playerタグのボールを探して参照を保持する。</summary>
     void Start()
     {
         var ballGO = GameObject.FindWithTag("Player");
@@ -35,6 +44,9 @@ public class BarController : MonoBehaviour
         }
     }
 
+    /// <summary>バーの長さと初期位置を設定する。</summary>
+    /// <param name="halfWidth">バーの半分の長さ。</param>
+    /// <param name="startY">初期のY座標(左右とも同じ高さで開始)。</param>
     public void Initialize(float halfWidth, float startY)
     {
         barHalfWidth = halfWidth;
@@ -46,6 +58,7 @@ public class BarController : MonoBehaviour
         transform.rotation = Quaternion.identity;
     }
 
+    /// <summary>キー入力で左右端の高さを動かし、ボールを塞ぐ動きなら差し戻してから反映する。</summary>
     void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
@@ -77,7 +90,7 @@ public class BarController : MonoBehaviour
         Apply();
     }
 
-    // 棒の傾きを考慮した、ボールのX座標における棒上面のY座標
+    /// <summary>棒の傾きを考慮した、指定X座標における棒上面のY座標を返す。</summary>
     float BarTopYAtX(float lY, float rY, float x)
     {
         float hw = barHalfWidth;
@@ -87,6 +100,9 @@ public class BarController : MonoBehaviour
         return spineY + 0.09f * (2f * hw / barLen); // 半厚み × cos(angle)
     }
 
+    /// <summary>
+    /// 棒の上面が上昇してボールの上を塞ぐ動きになる場合に、その移動を止めるべきか判定する。
+    /// </summary>
     bool ShouldBlockMovement(float prevL, float prevR, float newL, float newR)
     {
         if (ballTransform == null) return false;
@@ -109,6 +125,7 @@ public class BarController : MonoBehaviour
         return IsBallBlockedAbove((Vector2)ballTransform.position, ballRadius);
     }
 
+    /// <summary>ボールの真上に(ボール・棒自身・トリガー以外の)障害物があるかを判定する。</summary>
     bool IsBallBlockedAbove(Vector2 ballPos, float radius)
     {
         int count = Physics2D.CircleCastNonAlloc(
@@ -131,6 +148,7 @@ public class BarController : MonoBehaviour
         return false;
     }
 
+    /// <summary>leftY・rightYから中心位置と傾きを計算し、Rigidbody2Dへ反映する。</summary>
     void Apply()
     {
         float centerY = (leftY + rightY) * 0.5f;
@@ -145,5 +163,6 @@ public class BarController : MonoBehaviour
         rb.MoveRotation(angle);
     }
 
+    /// <summary>バー中心のY座標を返す。</summary>
     public float GetCenterY() => (leftY + rightY) * 0.5f;
 }
