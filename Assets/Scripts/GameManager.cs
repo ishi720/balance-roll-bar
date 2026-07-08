@@ -178,7 +178,7 @@ public class GameManager : MonoBehaviour
     }
 
     // Circle enemy spawns: each entry is (originX, originY, radius, angularSpeed deg/sec)
-    static readonly (float ox, float oy, float radius, float angSpeed)[] EnemyData =
+    static readonly (float ox, float oy, float radius, float angSpeed)[] CircleEnemyData =
     {
         (-2.5f,  6f, 1.0f,  80f),
         ( 2.5f, 15f, 1.2f, -60f),
@@ -187,13 +187,26 @@ public class GameManager : MonoBehaviour
         ( 2.5f, 42f, 1.0f, 100f),
     };
 
+    // Horizontal ping-pong enemy spawns: each entry is (originX, originY, amplitude, speed)
+    static readonly (float ox, float oy, float amplitude, float speed)[] HorizontalEnemyData =
+    {
+        ( 0.0f,  9f, 1.5f, 2.0f),
+        (-1.0f, 18f, 1.8f, 1.5f),
+        ( 1.0f, 27f, 1.5f, 2.2f),
+        ( 0.0f, 36f, 1.8f, 1.8f),
+        (-1.0f, 45f, 1.5f, 2.0f),
+    };
+
     void CreateEnemies()
     {
-        foreach (var (ox, oy, radius, angSpeed) in EnemyData)
-            SpawnCircleEnemy(new Vector2(ox, oy), radius, angSpeed);
+        foreach (var (ox, oy, radius, angSpeed) in CircleEnemyData)
+            SpawnEnemy(new Vector2(ox, oy), new CircleMovement(radius, angSpeed));
+
+        foreach (var (ox, oy, amplitude, speed) in HorizontalEnemyData)
+            SpawnEnemy(new Vector2(ox, oy), new HorizontalPingPongMovement(amplitude, speed));
     }
 
-    void SpawnCircleEnemy(Vector2 origin, float radius, float angularSpeed)
+    void SpawnEnemy(Vector2 origin, IEnemyMovement movement)
     {
         var go = new GameObject("Enemy");
         go.transform.localScale = Vector3.one * 0.6f;
@@ -208,7 +221,7 @@ public class GameManager : MonoBehaviour
 
         var enemy = go.AddComponent<EnemyController>();
         enemy.gameManager = this;
-        enemy.Initialize(origin, new CircleMovement(radius, angularSpeed));
+        enemy.Initialize(origin, movement);
     }
 
     void CreateWalls(float hw)
