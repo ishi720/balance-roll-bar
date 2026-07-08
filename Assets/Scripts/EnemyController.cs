@@ -5,6 +5,8 @@ public class EnemyController : MonoBehaviour
 {
     [HideInInspector] public GameManager gameManager;
 
+    public float knockbackForce = 12f;
+
     Vector2 origin;
     IEnemyMovement movement;
     float elapsed;
@@ -31,7 +33,15 @@ public class EnemyController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Player"))
-            gameManager.OnEnemyHit();
+        if (!collision.gameObject.CompareTag("Player")) return;
+
+        gameManager.OnEnemyHit();
+
+        var ballRb = collision.rigidbody;
+        if (ballRb != null)
+        {
+            Vector2 dir = ((Vector2)ballRb.transform.position - (Vector2)transform.position).normalized;
+            ballRb.velocity = dir * knockbackForce;
+        }
     }
 }
