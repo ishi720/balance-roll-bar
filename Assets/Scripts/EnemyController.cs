@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class EnemyController : MonoBehaviour
 {
     [HideInInspector] public GameManager gameManager;
@@ -7,6 +8,13 @@ public class EnemyController : MonoBehaviour
     Vector2 origin;
     IEnemyMovement movement;
     float elapsed;
+    Rigidbody2D rb;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+    }
 
     public void Initialize(Vector2 origin, IEnemyMovement movement)
     {
@@ -15,15 +23,15 @@ public class EnemyController : MonoBehaviour
         transform.position = movement.GetPosition(origin, 0f);
     }
 
-    void Update()
+    void FixedUpdate()
     {
-        elapsed += Time.deltaTime;
-        transform.position = movement.GetPosition(origin, elapsed);
+        elapsed += Time.fixedDeltaTime;
+        rb.MovePosition(movement.GetPosition(origin, elapsed));
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    void OnCollisionEnter2D(Collision2D collision)
     {
-        if (other.CompareTag("Player"))
+        if (collision.gameObject.CompareTag("Player"))
             gameManager.OnEnemyHit();
     }
 }

@@ -225,8 +225,7 @@ public class GameManager : MonoBehaviour
         sr.color = new Color(0.75f, 0.1f, 0.9f);
         sr.sortingOrder = 3;
 
-        var col = go.AddComponent<CircleCollider2D>();
-        col.isTrigger = true;
+        go.AddComponent<CircleCollider2D>();
 
         var enemy = go.AddComponent<EnemyController>();
         enemy.gameManager = this;
