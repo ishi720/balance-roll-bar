@@ -27,12 +27,17 @@
 ```
 Assets/
 ├── Scenes/
-│   └── SampleScene.unity   # メインシーン
+│   └── SampleScene.unity           # メインシーン
 └── Scripts/
-    ├── GameManager.cs      # ゲーム全体の管理・オブジェクト生成
-    ├── BarController.cs    # バーの移動・傾き制御
-    ├── BallController.cs   # ボールの落下検知
-    └── GoalTrigger.cs      # ゴール判定
+    ├── GameManager.cs              # ゲーム全体の管理・オブジェクト生成・ライフ/タイマー管理
+    ├── BarController.cs            # バーの移動・傾き制御
+    ├── BallController.cs           # ボールの落下検知
+    ├── CameraController.cs         # ボールを追従するカメラ制御
+    ├── GoalTrigger.cs              # ゴール判定
+    ├── EnemyController.cs          # 敵本体(移動パターンの適用・被弾処理・ノックバック)
+    ├── IEnemyMovement.cs           # 敵の移動パターンのインターフェース
+    ├── CircleMovement.cs           # 移動パターン: 円運動
+    └── HorizontalPingPongMovement.cs  # 移動パターン: 左右往復移動
 ```
 
 ## 実行方法
