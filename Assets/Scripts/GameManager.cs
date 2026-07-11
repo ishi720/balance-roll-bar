@@ -59,12 +59,29 @@ public class GameManager : MonoBehaviour
         Camera cam = Camera.main;
         float hw = cam.orthographicSize * cam.aspect;
         float hh = cam.orthographicSize;
+        bool isDown = stage.scrollDirection == ScrollDirection.Down;
 
-        bar = CreateBar(hw, -hh + 0.5f);
+        float barStartY;
+        float goalY;
+        if (isDown)
+        {
+            // 障害物コースの最上段(46)より上に開始位置を置き、ゴールは最下段の下に置く
+            barStartY = worldMaxY - 3f;
+            goalY = worldMinY + 1f;
+            // バーが画面上部付近に見えるようカメラの初期位置を合わせる
+            cam.transform.position = new Vector3(cam.transform.position.x, barStartY - hh + 0.5f, cam.transform.position.z);
+        }
+        else
+        {
+            barStartY = -hh + 0.5f;
+            goalY = worldMaxY - 1f;
+        }
+
+        bar = CreateBar(hw, barStartY);
         barCollider = bar.GetComponent<Collider2D>();
 
         var ball = CreateBall(bar.GetCenterY());
-        CreateGoal(hw, worldMaxY - 1f);
+        CreateGoal(hw, goalY);
         CreateObstacles(hw);
         CreateEnemies();
         CreateWalls(hw);
@@ -96,6 +113,7 @@ public class GameManager : MonoBehaviour
         var ctrl = cam.gameObject.AddComponent<CameraController>();
         ctrl.ball = ball.transform;
         ctrl.forcedScrollSpeed = stage.forcedScrollSpeed;
+        ctrl.direction = stage.scrollDirection;
         ctrl.Initialize(worldMinY, worldMaxY);
     }
 
@@ -365,8 +383,9 @@ public class GameManager : MonoBehaviour
         }
 
         var info = new GUIStyle(GUI.skin.label) { fontSize = 16 };
+        string goalHint = stage.scrollDirection == ScrollDirection.Down ? "下のゴールへ" : "上のゴールへ";
         GUI.Label(new Rect(10, 10, 320, 80),
-            "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って上のゴールへ！", info);
+            "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って" + goalHint + "！", info);
 
         var lifeStyle = new GUIStyle(GUI.skin.label) { fontSize = 20 };
         GUI.Label(new Rect(10, 90, 200, 30), "ライフ: " + new string('♥', Mathf.Max(life, 0)), lifeStyle);
@@ -398,19 +417,19 @@ public class GameManager : MonoBehaviour
     {
         float cx = Screen.width * 0.5f;
 
-        var titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 44, alignment = TextAnchor.MiddleCenter };
+        var titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 40, alignment = TextAnchor.MiddleCenter };
         titleStyle.normal.textColor = Color.white;
-        GUI.Label(new Rect(0, 60, Screen.width, 60), "Balance Roll Bar", titleStyle);
+        GUI.Label(new Rect(0, 30, Screen.width, 50), "Balance Roll Bar", titleStyle);
 
-        var subStyle = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
+        var subStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
         subStyle.normal.textColor = Color.white;
-        GUI.Label(new Rect(0, 120, Screen.width, 30), "ステージを選んでください", subStyle);
+        GUI.Label(new Rect(0, 80, Screen.width, 26), "ステージを選んでください", subStyle);
 
         const float buttonW = 280f;
-        const float buttonH = 50f;
-        const float descH = 20f;
-        const float gap = 20f;
-        float startY = 170f;
+        const float buttonH = 46f;
+        const float descH = 18f;
+        const float gap = 14f;
+        float startY = 116f;
 
         var nameStyle = new GUIStyle(GUI.skin.button) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
         var descStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter, wordWrap = true };

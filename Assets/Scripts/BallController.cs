@@ -35,13 +35,23 @@ public class BallController : MonoBehaviour
             rb.velocity = rb.velocity.normalized * maxSpeed;
     }
 
-    /// <summary>カメラ下端より下に落ちたら、ゲーム管理者に落下を通知する。無敵時間中はボールを点滅させる。</summary>
+    /// <summary>カメラに置いていかれたら(スクロール方向と逆側の画面外に出たら)、ゲーム管理者に落下を通知する。無敵時間中はボールを点滅させる。</summary>
     void Update()
     {
         Camera cam = Camera.main;
-        float bottomLimit = cam.transform.position.y - cam.orthographicSize - 1f;
-        if (transform.position.y < bottomLimit)
-            gameManager.OnBallFell();
+        bool isDown = gameManager != null && gameManager.Stage != null && gameManager.Stage.scrollDirection == ScrollDirection.Down;
+        if (isDown)
+        {
+            float topLimit = cam.transform.position.y + cam.orthographicSize + 1f;
+            if (transform.position.y > topLimit)
+                gameManager.OnBallFell();
+        }
+        else
+        {
+            float bottomLimit = cam.transform.position.y - cam.orthographicSize - 1f;
+            if (transform.position.y < bottomLimit)
+                gameManager.OnBallFell();
+        }
 
         UpdateInvincibleEffect();
     }
