@@ -56,5 +56,9 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "balance-roll-bar.sln"
+    "dotnet.defaultSolution": "balance-roll-bar.sln",
+    "editor.renderWhitespace": "all", // 空白の表示
+    "editor.tabSize": 4, // インデント
+    "files.trimTrailingWhitespace": true, // ファイル末尾の空白削除
+    "window.title":"${dirty}${activeEditorMedium}${separator}${rootName}" // ファイルPATH表示
 }
