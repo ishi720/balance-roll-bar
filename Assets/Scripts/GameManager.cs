@@ -14,6 +14,13 @@ public class GameManager : MonoBehaviour
     BarController bar;
     Collider2D barCollider;
 
+    StageAttribute stage;
+    StageAttribute[] stageOptions;
+    bool started;
+
+    /// <summary>現在選択中のステージ属性。タイトル画面でステージを選ぶまではnull。</summary>
+    public StageAttribute Stage => stage;
+
     const float worldMinY = -6f;
     const float worldMaxY = 52f;
 
@@ -28,15 +35,28 @@ public class GameManager : MonoBehaviour
     /// <summary>現在ボールが無敵状態かどうか。</summary>
     public bool IsInvincible => invincibleTimer > 0f;
 
-    /// <summary>ライフ・タイマーを初期化し、バー・ボール・ゴール・障害物・敵・壁・カメラを生成する。</summary>
+    /// <summary>タイトル画面用に選択可能なステージ一覧を用意する。ステージ生成はBeginStageまで行わない。</summary>
     void Start()
     {
-        timeRemaining = timeLimit;
-        life = maxLife;
+        stageOptions = StageAttribute.CreateAllStages();
 
         Camera cam = Camera.main;
         cam.backgroundColor = new Color(0.08f, 0.08f, 0.15f);
+    }
 
+    /// <summary>選択されたステージでライフ・タイマーを初期化し、バー・ボール・ゴール・障害物・敵・壁・カメラを生成する。</summary>
+    void BeginStage(StageAttribute chosen)
+    {
+        stage = chosen;
+        timeRemaining = timeLimit;
+        life = maxLife;
+        invincibleTimer = 0f;
+        gameOver = false;
+        gameWon = false;
+        timeUp = false;
+        started = true;
+
+        Camera cam = Camera.main;
         float hw = cam.orthographicSize * cam.aspect;
         float hh = cam.orthographicSize;
 
@@ -51,9 +71,11 @@ public class GameManager : MonoBehaviour
         SetupCamera(cam, ball);
     }
 
-    /// <summary>無敵時間を減少させ、残り時間を減らして時間切れならゲームオーバーにする。</summary>
+    /// <summary>無敵時間を減少させ、残り時間を減らして時間切れならゲームオーバーにする。タイトル画面中は何もしない。</summary>
     void Update()
     {
+        if (!started) return;
+
         if (invincibleTimer > 0f)
             invincibleTimer -= Time.deltaTime;
 
@@ -68,11 +90,12 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>メインカメラにCameraControllerを追加し、追従対象とスクロール範囲を設定する。</summary>
+    /// <summary>メインカメラにCameraControllerを追加し、追従対象・強制スクロール速度・スクロール範囲を設定する。</summary>
     void SetupCamera(Camera cam, GameObject ball)
     {
         var ctrl = cam.gameObject.AddComponent<CameraController>();
         ctrl.ball = ball.transform;
+        ctrl.forcedScrollSpeed = stage.forcedScrollSpeed;
         ctrl.Initialize(worldMinY, worldMaxY);
     }
 
@@ -115,7 +138,7 @@ public class GameManager : MonoBehaviour
         col.sharedMaterial = mat;
 
         var rb = go.AddComponent<Rigidbody2D>();
-        rb.gravityScale = 2.5f;
+        rb.gravityScale = stage.ballGravityScale;
         rb.drag = 0.4f;
         rb.angularDrag = 0.6f;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
@@ -332,9 +355,15 @@ public class GameManager : MonoBehaviour
 
     // ---- UI ----
 
-    /// <summary>操作説明・ライフ・タイマー・勝敗メッセージをIMGUIで描画する。</summary>
+    /// <summary>タイトル画面・操作説明・ライフ・タイマー・勝敗メッセージをIMGUIで描画する。</summary>
     void OnGUI()
     {
+        if (!started)
+        {
+            DrawTitleScreen();
+            return;
+        }
+
         var info = new GUIStyle(GUI.skin.label) { fontSize = 16 };
         GUI.Label(new Rect(10, 10, 320, 80),
             "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って上のゴールへ！", info);
@@ -360,7 +389,40 @@ public class GameManager : MonoBehaviour
         float cy = Screen.height * 0.5f;
         GUI.Label(new Rect(0, cy - 60, Screen.width, 80), message, big);
 
-        if (GUI.Button(new Rect(cx - 70, cy + 40, 140, 40), "もう一度"))
+        if (GUI.Button(new Rect(cx - 70, cy + 40, 140, 40), "タイトルへ戻る"))
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    /// <summary>タイトル画面を描画し、ステージ選択ボタンからBeginStageを呼び出す。</summary>
+    void DrawTitleScreen()
+    {
+        float cx = Screen.width * 0.5f;
+
+        var titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 44, alignment = TextAnchor.MiddleCenter };
+        titleStyle.normal.textColor = Color.white;
+        GUI.Label(new Rect(0, 60, Screen.width, 60), "Balance Roll Bar", titleStyle);
+
+        var subStyle = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
+        subStyle.normal.textColor = Color.white;
+        GUI.Label(new Rect(0, 120, Screen.width, 30), "ステージを選んでください", subStyle);
+
+        const float buttonW = 280f;
+        const float buttonH = 50f;
+        const float descH = 20f;
+        const float gap = 20f;
+        float startY = 170f;
+
+        var nameStyle = new GUIStyle(GUI.skin.button) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
+        var descStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+        descStyle.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
+
+        for (int i = 0; i < stageOptions.Length; i++)
+        {
+            var option = stageOptions[i];
+            float y = startY + i * (buttonH + descH + gap);
+            if (GUI.Button(new Rect(cx - buttonW * 0.5f, y, buttonW, buttonH), option.displayName, nameStyle))
+                BeginStage(option);
+            GUI.Label(new Rect(cx - buttonW * 0.5f, y + buttonH + 2f, buttonW, descH), option.description, descStyle);
+        }
     }
 }

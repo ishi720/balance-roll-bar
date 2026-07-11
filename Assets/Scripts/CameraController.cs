@@ -8,6 +8,9 @@ public class CameraController : MonoBehaviour
     /// <summary>追従対象のボール。</summary>
     [HideInInspector] public Transform ball;
 
+    /// <summary>0より大きい場合、ボール追従ではなくこの速度で自動的に上へスクロールし続ける。</summary>
+    [HideInInspector] public float forcedScrollSpeed;
+
     private Camera cam;
     private float maxCamY;
 
@@ -20,13 +23,21 @@ public class CameraController : MonoBehaviour
         maxCamY = worldMaxY - cam.orthographicSize;
     }
 
-    /// <summary>ボール追従位置へ上方向のみ滑らかにスクロールする。</summary>
+    /// <summary>上方向のみ滑らかにスクロールする。強制スクロール指定時はボール位置を無視して一定速度で上昇する。</summary>
     void LateUpdate()
     {
-        if (ball == null) return;
-        // カメラは上方向にのみスクロール（下には戻らない）
-        float targetY = Mathf.Clamp(ball.position.y, transform.position.y, maxCamY);
-        float y = Mathf.Lerp(transform.position.y, targetY, Time.deltaTime * 3f);
+        float y;
+        if (forcedScrollSpeed > 0f)
+        {
+            y = Mathf.Min(transform.position.y + forcedScrollSpeed * Time.deltaTime, maxCamY);
+        }
+        else
+        {
+            if (ball == null) return;
+            // カメラは上方向にのみスクロール（下には戻らない）
+            float targetY = Mathf.Clamp(ball.position.y, transform.position.y, maxCamY);
+            y = Mathf.Lerp(transform.position.y, targetY, Time.deltaTime * 3f);
+        }
         transform.position = new Vector3(transform.position.x, y, transform.position.z);
     }
 }

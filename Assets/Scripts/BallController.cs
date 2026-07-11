@@ -25,9 +25,12 @@ public class BallController : MonoBehaviour
         baseColor = sr.color;
     }
 
-    /// <summary>速度がmaxSpeedを超えないようクランプする。</summary>
+    /// <summary>風の影響を加えたうえで、速度がmaxSpeedを超えないようクランプする。</summary>
     void FixedUpdate()
     {
+        if (gameManager != null && gameManager.Stage != null && gameManager.Stage.windForce != Vector2.zero)
+            rb.AddForce(gameManager.Stage.windForce);
+
         if (rb.velocity.sqrMagnitude > maxSpeed * maxSpeed)
             rb.velocity = rb.velocity.normalized * maxSpeed;
     }
