@@ -25,6 +25,9 @@ public class GameManager : MonoBehaviour
     int life;
     float invincibleTimer;
 
+    /// <summary>現在ボールが無敵状態かどうか。</summary>
+    public bool IsInvincible => invincibleTimer > 0f;
+
     /// <summary>ライフ・タイマーを初期化し、バー・ボール・ゴール・障害物・敵・壁・カメラを生成する。</summary>
     void Start()
     {
