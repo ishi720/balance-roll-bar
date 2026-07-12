@@ -10,6 +10,7 @@ public class GameManager : MonoBehaviour
     bool gameOver;
     bool gameWon;
     bool timeUp;
+    bool paused;
 
     BarController bar;
     Collider2D barCollider;
@@ -17,6 +18,8 @@ public class GameManager : MonoBehaviour
     StageAttribute stage;
     StageAttribute[] stageOptions;
     bool started;
+
+    Texture2D pauseOverlayTexture;
 
     /// <summary>現在選択中のステージ属性。タイトル画面でステージを選ぶまではnull。</summary>
     public StageAttribute Stage => stage;
@@ -55,6 +58,8 @@ public class GameManager : MonoBehaviour
         gameWon = false;
         timeUp = false;
         started = true;
+        paused = false;
+        Time.timeScale = 1f;
 
         Camera cam = Camera.main;
         float hw = cam.orthographicSize * cam.aspect;
@@ -88,10 +93,15 @@ public class GameManager : MonoBehaviour
         SetupCamera(cam, ball);
     }
 
-    /// <summary>無敵時間を減少させ、残り時間を減らして時間切れならゲームオーバーにする。タイトル画面中は何もしない。</summary>
+    /// <summary>Escキーでポーズを切り替え、無敵時間を減少させ、残り時間を減らして時間切れならゲームオーバーにする。タイトル画面中は何もしない。</summary>
     void Update()
     {
         if (!started) return;
+
+        if (!gameOver && !gameWon && Input.GetKeyDown(KeyCode.Escape))
+            SetPaused(!paused);
+
+        if (paused) return;
 
         if (invincibleTimer > 0f)
             invincibleTimer -= Time.deltaTime;
@@ -105,6 +115,19 @@ public class GameManager : MonoBehaviour
             timeUp = true;
             gameOver = true;
         }
+    }
+
+    /// <summary>ポーズ状態を切り替え、Time.timeScaleで物理・タイマーの進行を止める/再開する。</summary>
+    void SetPaused(bool value)
+    {
+        paused = value;
+        Time.timeScale = paused ? 0f : 1f;
+    }
+
+    /// <summary>ポーズ中に破棄された場合でもTime.timeScaleを元に戻す(エディタで再生停止した場合など)。</summary>
+    void OnDestroy()
+    {
+        Time.timeScale = 1f;
     }
 
     /// <summary>メインカメラにCameraControllerを追加し、追従対象・強制スクロール速度・スクロール範囲を設定する。</summary>
@@ -384,8 +407,8 @@ public class GameManager : MonoBehaviour
 
         var info = new GUIStyle(GUI.skin.label) { fontSize = 16 };
         string goalHint = stage.scrollDirection == ScrollDirection.Down ? "下のゴールへ" : "上のゴールへ";
-        GUI.Label(new Rect(10, 10, 320, 80),
-            "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って" + goalHint + "！", info);
+        GUI.Label(new Rect(10, 10, 320, 100),
+            "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って" + goalHint + "！\nEsc: ポーズ", info);
 
         var lifeStyle = new GUIStyle(GUI.skin.label) { fontSize = 20 };
         GUI.Label(new Rect(10, 90, 200, 30), "ライフ: " + new string('♥', Mathf.Max(life, 0)), lifeStyle);
@@ -396,6 +419,12 @@ public class GameManager : MonoBehaviour
         int seconds = Mathf.FloorToInt(timeRemaining % 60f);
         GUI.Label(new Rect(Screen.width - 160 - 10, 10, 160, 40),
             string.Format("{0:00}:{1:00}", minutes, seconds), timerStyle);
+
+        if (paused)
+        {
+            DrawPauseMenu();
+            return;
+        }
 
         if (!gameWon && !gameOver) return;
 
@@ -410,6 +439,34 @@ public class GameManager : MonoBehaviour
 
         if (GUI.Button(new Rect(cx - 70, cy + 40, 140, 40), "タイトルへ戻る"))
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    /// <summary>ポーズ中に半透明の背景とメニューを描画し、プレイ再開・タイトルへ戻る操作を提供する。</summary>
+    void DrawPauseMenu()
+    {
+        float cx = Screen.width * 0.5f;
+        float cy = Screen.height * 0.5f;
+
+        if (pauseOverlayTexture == null)
+        {
+            pauseOverlayTexture = new Texture2D(1, 1);
+            pauseOverlayTexture.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.6f));
+            pauseOverlayTexture.Apply();
+        }
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), pauseOverlayTexture);
+
+        var big = new GUIStyle(GUI.skin.label) { fontSize = 40, alignment = TextAnchor.MiddleCenter };
+        big.normal.textColor = Color.white;
+        GUI.Label(new Rect(0, cy - 100, Screen.width, 60), "ポーズ中", big);
+
+        if (GUI.Button(new Rect(cx - 70, cy - 20, 140, 40), "プレイ画面に戻る"))
+            SetPaused(false);
+
+        if (GUI.Button(new Rect(cx - 70, cy + 30, 140, 40), "タイトルへ戻る"))
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
     /// <summary>タイトル画面を描画し、ステージ選択ボタンからBeginStageを呼び出す。</summary>
