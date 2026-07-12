@@ -18,6 +18,7 @@ public class GameManager : MonoBehaviour
     StageAttribute stage;
     StageAttribute[] stageOptions;
     bool started;
+    bool showHowTo;
 
     Texture2D pauseOverlayTexture;
 
@@ -399,6 +400,12 @@ public class GameManager : MonoBehaviour
     /// <summary>タイトル画面・操作説明・ライフ・タイマー・勝敗メッセージをIMGUIで描画する。</summary>
     void OnGUI()
     {
+        if (showHowTo)
+        {
+            DrawHowToScreen();
+            return;
+        }
+
         if (!started)
         {
             DrawTitleScreen();
@@ -407,8 +414,8 @@ public class GameManager : MonoBehaviour
 
         var info = new GUIStyle(GUI.skin.label) { fontSize = 16 };
         string goalHint = stage.scrollDirection == ScrollDirection.Down ? "下のゴールへ" : "上のゴールへ";
-        GUI.Label(new Rect(10, 10, 320, 100),
-            "左端: W (上) / S (下)\n右端: ↑ (上) / ↓ (下)\n赤い壁の隙間を通って" + goalHint + "！\nEsc: ポーズ", info);
+        GUI.Label(new Rect(10, 10, 320, 50),
+            "赤い壁の隙間を通って" + goalHint + "！\nEsc: ポーズ", info);
 
         var lifeStyle = new GUIStyle(GUI.skin.label) { fontSize = 20 };
         GUI.Label(new Rect(10, 90, 200, 30), "ライフ: " + new string('♥', Mathf.Max(life, 0)), lifeStyle);
@@ -462,7 +469,10 @@ public class GameManager : MonoBehaviour
         if (GUI.Button(new Rect(cx - 70, cy - 20, 140, 40), "プレイ画面に戻る"))
             SetPaused(false);
 
-        if (GUI.Button(new Rect(cx - 70, cy + 30, 140, 40), "タイトルへ戻る"))
+        if (GUI.Button(new Rect(cx - 70, cy + 30, 140, 40), "操作方法"))
+            showHowTo = true;
+
+        if (GUI.Button(new Rect(cx - 70, cy + 80, 140, 40), "タイトルへ戻る"))
         {
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -482,6 +492,9 @@ public class GameManager : MonoBehaviour
         subStyle.normal.textColor = Color.white;
         GUI.Label(new Rect(0, 80, Screen.width, 26), "ステージを選んでください", subStyle);
 
+        if (GUI.Button(new Rect(Screen.width - 130, 10, 120, 36), "操作方法"))
+            showHowTo = true;
+
         const float buttonW = 280f;
         const float buttonH = 46f;
         const float descH = 18f;
@@ -500,5 +513,29 @@ public class GameManager : MonoBehaviour
                 BeginStage(option);
             GUI.Label(new Rect(cx - buttonW * 0.5f, y + buttonH + 2f, buttonW, descH), option.description, descStyle);
         }
+    }
+
+    /// <summary>操作方法ページを描画し、タイトル画面へ戻るボタンを提供する。</summary>
+    void DrawHowToScreen()
+    {
+        float cx = Screen.width * 0.5f;
+
+        var titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 32, alignment = TextAnchor.MiddleCenter };
+        titleStyle.normal.textColor = Color.white;
+        GUI.Label(new Rect(0, 30, Screen.width, 44), "操作方法", titleStyle);
+
+        var bodyStyle = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.UpperLeft, wordWrap = true };
+        bodyStyle.normal.textColor = Color.white;
+
+        string body =
+            "・左端のバー: W キーで上げる / S キーで下げる\n" +
+            "・右端のバー: ↑ キーで上げる / ↓ キーで下げる\n" +
+            "・Esc キーでポーズ / 再開";
+
+        float boxW = Mathf.Min(560f, Screen.width - 80f);
+        GUI.Label(new Rect(cx - boxW * 0.5f, 100, boxW, 120), body, bodyStyle);
+
+        if (GUI.Button(new Rect(cx - 70, 240, 140, 40), "戻る"))
+            showHowTo = false;
     }
 }
